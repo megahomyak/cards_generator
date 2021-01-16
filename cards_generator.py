@@ -196,6 +196,7 @@ def __main():
         for filename in filenames:
             if filename[0] == "#":
                 images.append(None)  # Stub
+                image_modes.append(None)  # Stub
             else:
                 if filename[0] in (">", "*"):
                     filename = filename[1:]
