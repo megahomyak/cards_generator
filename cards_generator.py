@@ -10,20 +10,32 @@ RGB_COLOR = Tuple[int, int, int, int]
 
 
 def add_gradient(
-        image: Image.Image, gradient_color: RGB_COLOR = (0, 0, 0)) -> None:
+        image: Image.Image, gradient_color: RGB_COLOR = (0, 0, 0),
+        on_side: bool = True) -> None:
     """
     WARNING: mutates the given image!
 
     & image should be in `rgba` format
+
+    If on_side is False, gradient will be on the bottom
     """
     if image.mode != "RGBA":
         raise ValueError("Image should be in the RGBA format!")
-    start_x = image.width // 3
-    gradient = Image.new("RGBA", (256, 1))
+    if on_side:
+        start_x = image.width // 3
+    else:
+        start_y = image.height // 2
+    gradient = Image.new("RGBA", (256, 1) if on_side else (1, 256))
     for x in range(256):
-        gradient.putpixel((x, 0), (*gradient_color, x))
-    gradient = gradient.resize((image.width - start_x, image.height))
-    image.alpha_composite(gradient, (start_x, 0))
+        gradient.putpixel((x, 0) if on_side else (0, x), (*gradient_color, x))
+    # noinspection PyUnboundLocalVariable
+    # because of start_x and start_y
+    gradient = gradient.resize(
+        (image.width - start_x, image.height)
+        if on_side else
+        (image.width, image.height - start_y)
+    )
+    image.alpha_composite(gradient, (start_x, 0) if on_side else (0, start_y))
 
 
 # SOOOOOOO MANY BAD WORKAROUNDS, MY GOD...
@@ -33,20 +45,23 @@ def add_gradient_with_text(
         regular_font_file_name: str, bold_font_file_name: str,
         gradient_color: RGB_COLOR = (0, 0, 0),
         text_color: RGB_COLOR = (255, 255, 255),
-        symbols_before_wrap: Optional[int] = None) -> None:
+        symbols_before_wrap: Optional[int] = None,
+        on_side: bool = True) -> None:
     """
     WARNING: mutates the given image!
 
     & image should be in `rgba` format
 
     If symbols_before_wrap is not specified, then it's (quite badly) calculated
+
+    If on_side is False, gradient will be on the bottom
     """
     if image.mode != "RGBA":
         raise ValueError("Image should be in the RGBA format!")
     font_size = min(image.size) // 22  # Approximately...
     regular_font = FreeTypeFont(regular_font_file_name, size=font_size)
     bold_font = FreeTypeFont(bold_font_file_name, size=font_size)
-    add_gradient(image, gradient_color)
+    add_gradient(image, gradient_color, on_side=on_side)
     right_offset = image.width // 100
     description_start_x = image.width // 7 * 5
     place_for_description = image.width - right_offset - description_start_x
