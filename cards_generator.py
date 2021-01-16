@@ -194,7 +194,9 @@ def __main():
                     f"Filename on line {(i + 1) * 3} in "
                     f"{TEXTS_FILE_NAME} is missing!"
                 )
-            if filename[0] in (">", "*"):
+            if filename[0] == ">":
+                filename = filename[1:]
+            if filename[0] == "*":  # To handle >*
                 filename = filename[1:]
             if filename[0] != "#" and filename not in input_photos:
                 raise FileNotFoundError(
@@ -208,7 +210,9 @@ def __main():
                 images.append(None)  # Stub
                 image_modes.append(None)  # Stub
             else:
-                if filename[0] in (">", "*"):
+                if filename[0] == ">":
+                    filename = filename[1:]
+                if filename[0] == "*":  # To handle >*
                     filename = filename[1:]
                 image = Image.open(f"{INPUT_FOLDER_NAME}/{filename}")
                 image_modes.append(image.mode)
