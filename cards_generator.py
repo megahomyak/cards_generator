@@ -54,6 +54,7 @@ def add_gradient_with_text(
         title, fill=text_color, font=bold_font
     )
     description_start_x = image.width // 7 * 5
+    place_for_description = image.width // 100 * 99 - description_start_x
     if symbols_before_wrap is None:
         symbols_before_wrap = 1
         while (
@@ -62,7 +63,7 @@ def add_gradient_with_text(
                     description, symbols_before_wrap
                 )
             )
-            < image.width - description_start_x  # While text fits
+            < place_for_description  # While text fits
         ):
             symbols_before_wrap += 1
         symbols_before_wrap -= 1  # To remove overplus
