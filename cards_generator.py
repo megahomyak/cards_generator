@@ -24,7 +24,7 @@ def add_gradient(
     if on_side:
         start_x = image.width // 3
     else:
-        start_y = image.height // 2
+        start_y = image.height // 3
     gradient = Image.new("RGBA", (256, 1) if on_side else (1, 256))
     for x in range(256):
         gradient.putpixel((x, 0) if on_side else (0, x), (*gradient_color, x))
