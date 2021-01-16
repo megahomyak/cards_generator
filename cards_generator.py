@@ -135,7 +135,10 @@ def __main():
         "If you add # before the filename, it will be ignored. If you add > "
         "before the filename, side gradient will be applied. If you add * "
         "before the filename, text's size will be multiplied by 2. >* applies "
-        "them both."
+        "them both.\n"
+        "If you want to write the same title and description for several "
+        "files, you can write their names in one line separated with | (like "
+        "abc.jpg | def.png | ghi.jpeg)"
     )
 
     for font_file_name in (REGULAR_FONT_FILE_NAME, BOLD_FONT_FILE_NAME):
@@ -176,7 +179,14 @@ def __main():
                 f"I think, I should remind you, how to format it:\n"
                 f"{TEXTS_FILE_FORMAT}"
             )
-        filenames, titles, descriptions = (file_lines[i::3] for i in range(3))
+        filenames = []
+        titles = []
+        descriptions = []
+        for i, filenames_ in enumerate(file_lines[::3]):
+            for filename in filenames_.split("|"):
+                filenames.append(filename.strip())
+                titles.append(file_lines[i * 3 + 1])
+                descriptions.append(file_lines[i * 3 + 2])
         # Checking before doing something
         for i, filename in enumerate(filenames):
             if len(filename) == 0:
