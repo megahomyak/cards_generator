@@ -49,10 +49,6 @@ def add_gradient_with_text(
     add_gradient(image, gradient_color)
     drawer = Draw(image)
     title_start_x = image.width // 6 * 5 - bold_font.getsize(title)[0] // 2
-    drawer.text(
-        (title_start_x, image.height // 5),
-        title, fill=text_color, font=bold_font
-    )
     description_start_x = image.width // 7 * 5
     place_for_description = image.width // 100 * 99 - description_start_x
     if symbols_before_wrap is None:
@@ -70,8 +66,17 @@ def add_gradient_with_text(
     wrapped_description = "\n".join(textwrap.wrap(
         description, symbols_before_wrap
     ))
-    drawer.multiline_text(
-        (description_start_x, image.height // 4),
+    title_height = bold_font.getsize(title)[1]
+    gap = title_height // 2
+    description_height = regular_font.getsize_multiline(wrapped_description)[1]
+    text_height = title_height + gap + description_height
+    title_start_y = (image.height - text_height) // 2
+    drawer.text(  # Title
+        (title_start_x, title_start_y),
+        title, fill=text_color, font=bold_font
+    )
+    drawer.multiline_text(  # Description
+        (description_start_x, title_start_y + title_height + gap),
         wrapped_description, fill=text_color, font=regular_font
     )
 
