@@ -19,10 +19,9 @@ def add_gradient(
     if image.mode != "RGBA":
         raise ValueError("Image should be in the RGBA format!")
     start_x = image.width // 3
-    gradient = Image.new("RGBA", (256, 256))
-    drawer = Draw(gradient)
+    gradient = Image.new("RGBA", (256, 1))
     for x in range(256):
-        drawer.line([(x, 0), (x, 255)], fill=(*gradient_color, x))
+        gradient.putpixel((x, 0), (*gradient_color, x))
     gradient = gradient.resize((image.width - start_x, image.height))
     image.alpha_composite(gradient, (start_x, 0))
 
