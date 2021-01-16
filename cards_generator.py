@@ -62,9 +62,11 @@ def add_gradient_with_text(
     regular_font = FreeTypeFont(regular_font_file_name, size=font_size)
     bold_font = FreeTypeFont(bold_font_file_name, size=font_size)
     add_gradient(image, gradient_color, on_side=on_side)
-    right_offset = image.width // 100
-    description_start_x = image.width // 7 * 5
-    place_for_description = image.width - right_offset - description_start_x
+    side_padding = image.width // 100
+    description_start_x = (image.width // 7 * 5) if on_side else side_padding
+    place_for_description = image.width - (
+        side_padding if on_side else side_padding * 2
+    ) - description_start_x
     if symbols_before_wrap is None:
         symbols_before_wrap = 1
         while (
@@ -86,10 +88,16 @@ def add_gradient_with_text(
         regular_font.getsize_multiline(wrapped_description)
     )
     text_height = title_height + gap_between_texts + description_height
-    title_start_x = description_start_x + (
-            description_width - title_width
-    ) // 2
-    title_start_y = (image.height - text_height) // 2
+    if on_side:
+        title_start_y = (image.height - text_height) // 2
+    else:
+        title_start_y = round(image.height / 8 * 7) - text_height // 2
+        if title_start_y + text_height > image.height - side_padding:
+            title_start_y = image.height - side_padding - text_height
+        description_start_x = (
+            (image.width - description_width) // 2
+        )
+    title_start_x = description_start_x + (description_width - title_width) // 2
     drawer = Draw(image)
     drawer.text(  # Title
         (title_start_x, title_start_y),
