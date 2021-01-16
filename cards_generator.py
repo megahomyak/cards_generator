@@ -123,7 +123,10 @@ def __main():
         "filename 2\n"
         "Title 2\n"
         "Description 2\n"
-        "..."
+        "...\n"
+        "\n"
+        "If you add # before the filename, it will be ignored. If you add > "
+        "before the filename, side gradient will be applied."
     )
 
     for font_file_name in (REGULAR_FONT_FILE_NAME, BOLD_FONT_FILE_NAME):
@@ -165,8 +168,16 @@ def __main():
                 f"{TEXTS_FILE_FORMAT}"
             )
         filenames, titles, descriptions = (file_lines[i::3] for i in range(3))
-        for filename in filenames:  # Checking before doing something
-            if filename not in input_photos:
+        # Checking before doing something
+        for i, filename in enumerate(filenames):
+            if len(filename) == 0:
+                raise ValueError(
+                    f"Filename on line {(i + 1) * 3} in "
+                    f"{TEXTS_FILE_NAME} is missing!"
+                )
+            if filename[0] == ">":
+                filename = filename[1:]
+            if filename not in input_photos and filename[0] != "#":
                 raise FileNotFoundError(
                     f"File you stated in the {TEXTS_FILE_NAME} (exactly "
                     f"{filename}) is missing in the {INPUT_FOLDER_NAME}!"
@@ -174,19 +185,31 @@ def __main():
         images = []
         image_modes = []
         for filename in filenames:
-            image = Image.open(f"{INPUT_FOLDER_NAME}/{filename}")
-            image_modes.append(image.mode)
-            images.append(image.convert("RGBA"))
+            if filename[0] == "#":
+                images.append(None)  # Stub
+            else:
+                if filename[0] == ">":
+                    filename = filename[1:]
+                image = Image.open(f"{INPUT_FOLDER_NAME}/{filename}")
+                image_modes.append(image.mode)
+                images.append(image.convert("RGBA"))
         for image, old_image_mode, filename, title, description in zip(
             images, image_modes, filenames, titles, descriptions
         ):
-            add_gradient_with_text(
-                image=image, title=title, description=description,
-                regular_font_file_name=REGULAR_FONT_FILE_NAME,
-                bold_font_file_name=BOLD_FONT_FILE_NAME
-            )
-            image = image.convert(old_image_mode)
-            image.save(f"{OUTPUT_FOLDER_NAME}/{filename}")
+            if image is not None:  # It is ignored
+                if filename[0] == ">":
+                    on_side = True
+                    filename = filename[1:]
+                else:
+                    on_side = False
+                add_gradient_with_text(
+                    image=image, title=title, description=description,
+                    regular_font_file_name=REGULAR_FONT_FILE_NAME,
+                    bold_font_file_name=BOLD_FONT_FILE_NAME,
+                    on_side=on_side
+                )
+                image = image.convert(old_image_mode)
+                image.save(f"{OUTPUT_FOLDER_NAME}/{filename}")
 
 
 if __name__ == '__main__':
