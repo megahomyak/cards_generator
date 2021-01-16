@@ -50,7 +50,8 @@ def add_gradient_with_text(
         gradient_color: RGB_COLOR = (0, 0, 0),
         text_color: RGB_COLOR = (255, 255, 255),
         symbols_before_wrap: Optional[int] = None,
-        gradient_on_side: bool = True) -> None:
+        gradient_on_side: bool = True,
+        text_size_multiplier: int = 1) -> None:
     """
     WARNING: mutates the given image!
 
@@ -62,7 +63,7 @@ def add_gradient_with_text(
     """
     if image.mode != "RGBA":
         raise ValueError("Image should be in the RGBA format!")
-    font_size = min(image.size) // 22  # Approximately...
+    font_size = min(image.size) // 22 * text_size_multiplier  # Approximately...
     regular_font = FreeTypeFont(regular_font_file_name, size=font_size)
     bold_font = FreeTypeFont(bold_font_file_name, size=font_size)
     add_gradient(image, gradient_color, gradient_on_side=gradient_on_side)
@@ -132,7 +133,9 @@ def __main():
         "...\n"
         "\n"
         "If you add # before the filename, it will be ignored. If you add > "
-        "before the filename, side gradient will be applied."
+        "before the filename, side gradient will be applied. If you add * "
+        "before the filename, text's size will be multiplied by 2. >* applies "
+        "them both."
     )
 
     for font_file_name in (REGULAR_FONT_FILE_NAME, BOLD_FONT_FILE_NAME):
@@ -181,9 +184,9 @@ def __main():
                     f"Filename on line {(i + 1) * 3} in "
                     f"{TEXTS_FILE_NAME} is missing!"
                 )
-            if filename[0] == ">":
+            if filename[0] in (">", "*"):
                 filename = filename[1:]
-            if filename not in input_photos and filename[0] != "#":
+            if filename[0] != "#" and filename not in input_photos:
                 raise FileNotFoundError(
                     f"File you stated in the {TEXTS_FILE_NAME} (exactly "
                     f"{filename}) is missing in the {INPUT_FOLDER_NAME}!"
@@ -194,7 +197,7 @@ def __main():
             if filename[0] == "#":
                 images.append(None)  # Stub
             else:
-                if filename[0] == ">":
+                if filename[0] in (">", "*"):
                     filename = filename[1:]
                 image = Image.open(f"{INPUT_FOLDER_NAME}/{filename}")
                 image_modes.append(image.mode)
@@ -208,11 +211,17 @@ def __main():
                     filename = filename[1:]
                 else:
                     on_side = False
+                if filename[0] == "*":
+                    text_size_multiplier = 2
+                    filename = filename[1:]
+                else:
+                    text_size_multiplier = 1
                 add_gradient_with_text(
                     image=image, title=title, description=description,
                     regular_font_file_name=REGULAR_FONT_FILE_NAME,
                     bold_font_file_name=BOLD_FONT_FILE_NAME,
-                    gradient_on_side=on_side
+                    gradient_on_side=on_side,
+                    text_size_multiplier=text_size_multiplier
                 )
                 image = image.convert(old_image_mode)
                 image.save(f"{OUTPUT_FOLDER_NAME}/{filename}")
