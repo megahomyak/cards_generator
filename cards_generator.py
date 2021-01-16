@@ -63,7 +63,10 @@ def add_gradient_with_text(
     """
     if image.mode != "RGBA":
         raise ValueError("Image should be in the RGBA format!")
-    font_size = min(image.size) // 22 * text_size_multiplier  # Approximately...
+    font_size = round(
+        min(image.size) // 22  # Approximately...
+        * text_size_multiplier
+    )
     regular_font = FreeTypeFont(regular_font_file_name, size=font_size)
     bold_font = FreeTypeFont(bold_font_file_name, size=font_size)
     add_gradient(image, gradient_color, gradient_on_side=gradient_on_side)
@@ -227,7 +230,7 @@ def __main():
                 else:
                     on_side = False
                 if filename[0] == "*":
-                    text_size_multiplier = 2
+                    text_size_multiplier = 1.5
                     filename = filename[1:]
                 else:
                     text_size_multiplier = 1
