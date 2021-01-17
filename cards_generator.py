@@ -1,5 +1,6 @@
 import os
 import textwrap
+from dataclasses import dataclass
 from typing import Tuple, Optional
 
 from PIL import Image
@@ -7,6 +8,15 @@ from PIL.ImageDraw import Draw
 from PIL.ImageFont import FreeTypeFont
 
 RGB_COLOR = Tuple[int, int, int, int]
+
+
+@dataclass
+class ImageInfo:
+    source_filename: str
+    title: str
+    description: str
+    gradient_on_side: bool = False
+    text_size_multiplier: float = 1
 
 
 def add_gradient(
@@ -51,7 +61,7 @@ def add_gradient_with_text(
         text_color: RGB_COLOR = (255, 255, 255),
         symbols_before_wrap: Optional[int] = None,
         gradient_on_side: bool = True,
-        text_size_multiplier: int = 1) -> None:
+        text_size_multiplier: float = 1) -> None:
     """
     WARNING: mutates the given image!
 
@@ -161,88 +171,76 @@ def __main():
             "No input photos provided.\n"
             f"You need to put some images in the {INPUT_FOLDER_NAME} folder."
         )
-    else:
-        try:
-            with open(TEXTS_FILE_NAME, "r", encoding="utf-8") as f:
-                file_lines = f.read().split("\n")
-        except FileNotFoundError:
-            raise FileNotFoundError(
-                f"File {TEXTS_FILE_NAME} not found! Create it and fill with "
-                f"the text of the following format:\n{TEXTS_FILE_FORMAT}"
-            )
-        if not file_lines:
-            raise ValueError(
-                f"File {TEXTS_FILE_NAME} is empty. You need to fill it with "
-                f"some data of the following format:\n{TEXTS_FILE_FORMAT}"
-            )
-        if len(file_lines) % 3 != 0:
-            raise ValueError(
-                f"Amount of lines in {TEXTS_FILE_NAME} isn't multiple of "
-                f"three!\n"
-                f"I think, I should remind you, how to format it:\n"
-                f"{TEXTS_FILE_FORMAT}"
-            )
-        filenames = []
-        titles = []
-        descriptions = []
-        for i, filenames_ in enumerate(file_lines[::3]):
-            for filename in filenames_.split("|"):
-                filenames.append(filename.strip())
-                titles.append(file_lines[i * 3 + 1])
-                descriptions.append(file_lines[i * 3 + 2])
-        # Checking before doing something
-        for i, filename in enumerate(filenames):
+    try:
+        with open(TEXTS_FILE_NAME, "r", encoding="utf-8") as f:
+            file_lines = f.read().split("\n")
+    except FileNotFoundError:
+        raise FileNotFoundError(
+            f"File {TEXTS_FILE_NAME} not found! Create it and fill with "
+            f"the text of the following format:\n{TEXTS_FILE_FORMAT}"
+        )
+    if not file_lines:
+        raise ValueError(
+            f"File {TEXTS_FILE_NAME} is empty. You need to fill it with "
+            f"some data of the following format:\n{TEXTS_FILE_FORMAT}"
+        )
+    if len(file_lines) % 3 != 0:
+        raise ValueError(
+            f"Amount of lines in {TEXTS_FILE_NAME} isn't multiple of "
+            f"three!\n"
+            f"I think, I should remind you, how to format it:\n"
+            f"{TEXTS_FILE_FORMAT}"
+        )
+    images_info = []
+    for i, filenames_ in enumerate(file_lines[::3]):
+        for filename in filenames_.split("|"):
+            filename = filename.strip()
             if len(filename) == 0:
                 raise ValueError(
                     f"Filename on line {(i + 1) * 3} in "
                     f"{TEXTS_FILE_NAME} is missing!"
                 )
-            if filename[0] == ">":
-                filename = filename[1:]
-            if filename[0] == "*":  # To handle >*
-                filename = filename[1:]
-            if filename[0] != "#" and filename not in input_photos:
-                raise FileNotFoundError(
-                    f"File you stated in the {TEXTS_FILE_NAME} (exactly "
-                    f"{filename}) is missing in the {INPUT_FOLDER_NAME}!"
-                )
-        images = []
-        image_modes = []
-        for filename in filenames:
-            if filename[0] == "#":
-                images.append(None)  # Stub
-                image_modes.append(None)  # Stub
-            else:
+            if filename[0] != "#":
+                if filename not in input_photos:
+                    raise FileNotFoundError(
+                        f"File you stated in the {TEXTS_FILE_NAME} (exactly "
+                        f"{filename}) is missing in the {INPUT_FOLDER_NAME}!"
+                    )
                 if filename[0] == ">":
                     filename = filename[1:]
+                    gradient_on_side = True
+                else:
+                    gradient_on_side = False
                 if filename[0] == "*":  # To handle >*
                     filename = filename[1:]
-                image = Image.open(f"{INPUT_FOLDER_NAME}/{filename}")
-                image_modes.append(image.mode)
-                images.append(image.convert("RGBA"))
-        for image, old_image_mode, filename, title, description in zip(
-            images, image_modes, filenames, titles, descriptions
-        ):
-            if image is not None:  # It is ignored
-                if filename[0] == ">":
-                    on_side = True
-                    filename = filename[1:]
-                else:
-                    on_side = False
-                if filename[0] == "*":
-                    text_size_multiplier = 1.5
-                    filename = filename[1:]
+                    text_size_multiplier = 1.4
                 else:
                     text_size_multiplier = 1
-                add_gradient_with_text(
-                    image=image, title=title, description=description,
-                    regular_font_file_name=REGULAR_FONT_FILE_NAME,
-                    bold_font_file_name=BOLD_FONT_FILE_NAME,
-                    gradient_on_side=on_side,
+                images_info.append(ImageInfo(
+                    source_filename=filename, title=file_lines[i * 3 + 1],
+                    description=file_lines[i * 3 + 2],
+                    gradient_on_side=gradient_on_side,
                     text_size_multiplier=text_size_multiplier
-                )
-                image = image.convert(old_image_mode)
-                image.save(f"{OUTPUT_FOLDER_NAME}/{filename}")
+                ))
+    images = []
+    old_image_modes = []
+    for image_info in images_info:
+        image = Image.open(f"{INPUT_FOLDER_NAME}/{image_info.source_filename}")
+        old_image_modes.append(image.mode)
+        images.append(image.convert("RGBA"))
+    for image, old_image_mode, image_info in zip(
+        images, old_image_modes, images_info
+    ):
+        add_gradient_with_text(
+            image=image, title=image_info.title,
+            description=image_info.description,
+            regular_font_file_name=REGULAR_FONT_FILE_NAME,
+            bold_font_file_name=BOLD_FONT_FILE_NAME,
+            gradient_on_side=image_info.gradient_on_side,
+            text_size_multiplier=image_info.text_size_multiplier
+        )
+        image = image.convert(old_image_mode)
+        image.save(f"{OUTPUT_FOLDER_NAME}/{image_info.source_filename}")
 
 
 if __name__ == '__main__':
