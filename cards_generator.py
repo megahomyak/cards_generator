@@ -201,11 +201,6 @@ def __main():
                     f"{TEXTS_FILE_NAME} is missing!"
                 )
             if filename[0] != "#":
-                if filename not in input_photos:
-                    raise FileNotFoundError(
-                        f"File you stated in the {TEXTS_FILE_NAME} (exactly "
-                        f"{filename}) is missing in the {INPUT_FOLDER_NAME}!"
-                    )
                 if filename[0] == ">":
                     filename = filename[1:]
                     gradient_on_side = True
@@ -216,6 +211,11 @@ def __main():
                     text_size_multiplier = 1.4
                 else:
                     text_size_multiplier = 1
+                if filename not in input_photos:
+                    raise FileNotFoundError(
+                        f"File you stated in the {TEXTS_FILE_NAME} (exactly "
+                        f"{filename}) is missing in the {INPUT_FOLDER_NAME}!"
+                    )
                 images_info.append(ImageInfo(
                     source_filename=filename, title=file_lines[i * 3 + 1],
                     description=file_lines[i * 3 + 2],
