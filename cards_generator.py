@@ -1,7 +1,7 @@
 import os
 import textwrap
 from dataclasses import dataclass
-from typing import Tuple, Optional
+from typing import Tuple, Optional, List
 
 from PIL import Image
 from PIL.ImageDraw import Draw
@@ -52,6 +52,26 @@ def add_gradient(
     )
 
 
+def get_wrapped_text_by_max_width(
+        font: FreeTypeFont, text: str, width_limit_in_pixels: int) -> List[str]:
+    symbols_before_text_wrap = 1
+    while True:
+        wrapped_text = textwrap.wrap(text, symbols_before_text_wrap + 1)
+        if (
+            max(
+                font.getsize(part)[0] for part in wrapped_text
+            ) < width_limit_in_pixels  # If text fits
+        ):
+            if len(wrapped_text) != 1:  # And it is possible to wrap more
+                symbols_before_text_wrap += 1
+            else:
+                break
+        else:
+            wrapped_text = textwrap.wrap(text, symbols_before_text_wrap)
+            break
+    return wrapped_text
+
+
 # SOOOOOOO MANY BAD WORKAROUNDS, MY GOD...
 
 def add_gradient_with_text(
@@ -59,9 +79,11 @@ def add_gradient_with_text(
         regular_font_file_name: str, bold_font_file_name: str,
         gradient_color: RGB_COLOR = (0, 0, 0),
         text_color: RGB_COLOR = (255, 255, 255),
-        symbols_before_wrap: Optional[int] = None,
+        symbols_before_description_wrap: Optional[int] = None,
+        symbols_before_title_wrap: Optional[int] = None,
         gradient_on_side: bool = True,
-        text_size_multiplier: float = 1) -> None:
+        text_size_multiplier: float = 1,
+        font_size: int = None) -> None:
     """
     WARNING: mutates the given image!
 
@@ -76,7 +98,7 @@ def add_gradient_with_text(
     font_size = round(
         min(image.size) // 22  # Approximately...
         * text_size_multiplier
-    )
+    ) if font_size is None else font_size
     regular_font = FreeTypeFont(regular_font_file_name, size=font_size)
     bold_font = FreeTypeFont(bold_font_file_name, size=font_size)
     add_gradient(image, gradient_color, gradient_on_side=gradient_on_side)
@@ -84,26 +106,32 @@ def add_gradient_with_text(
     description_start_x = (
         image.width // 7 * 5
     ) if gradient_on_side else side_padding
-    place_for_description = image.width - (
-        side_padding if gradient_on_side else side_padding * 2
-    ) - description_start_x
-    if symbols_before_wrap is None:
-        symbols_before_wrap = 1
-        while (
-            max(
-                regular_font.getsize(part)[0] for part in textwrap.wrap(
-                    description, symbols_before_wrap
-                )
-            )
-            < place_for_description  # While text fits
-        ):
-            symbols_before_wrap += 1
-        symbols_before_wrap -= 1  # To remove overplus
-    wrapped_description = "\n".join(textwrap.wrap(
-        description, symbols_before_wrap
-    ))
-    title_width, title_height = bold_font.getsize(title)
-    gap_between_texts = title_height // 2
+    place_for_description = (
+        image.width - (
+            side_padding if gradient_on_side else side_padding * 2
+        ) - description_start_x
+    )
+    if symbols_before_description_wrap is None:
+        wrapped_description = get_wrapped_text_by_max_width(
+            regular_font, description, place_for_description
+        )
+    else:
+        wrapped_description = textwrap.wrap(
+            description, symbols_before_description_wrap
+        )
+    wrapped_description = "\n".join(wrapped_description)
+    if symbols_before_title_wrap is None:
+        wrapped_title = get_wrapped_text_by_max_width(
+            bold_font, title, place_for_description
+        )
+    else:
+        wrapped_title = textwrap.wrap(
+            title, symbols_before_title_wrap
+        )
+    wrapped_title = "\n".join(wrapped_title)
+    title_width, title_height = bold_font.getsize_multiline(wrapped_title)
+    # gap_between_texts = height_of_one_line // 2
+    gap_between_texts = bold_font.getsize(title)[1] // 2
     description_width, description_height = (
         regular_font.getsize_multiline(wrapped_description)
     )
@@ -114,14 +142,12 @@ def add_gradient_with_text(
         title_start_y = round(image.height / 8 * 7) - text_height // 2
         if title_start_y + text_height > image.height - side_padding:
             title_start_y = image.height - side_padding - text_height
-        description_start_x = (
-            (image.width - description_width) // 2
-        )
+        description_start_x = (image.width - description_width) // 2
     title_start_x = description_start_x + (description_width - title_width) // 2
     drawer = Draw(image)
     drawer.text(  # Title
         (title_start_x, title_start_y),
-        title, fill=text_color, font=bold_font
+        wrapped_title, fill=text_color, font=bold_font, align="center"
     )
     drawer.multiline_text(  # Description
         (description_start_x, title_start_y + title_height + gap_between_texts),
