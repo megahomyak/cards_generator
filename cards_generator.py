@@ -43,32 +43,28 @@ def add_gradient_with_text(
     bold_font = FreeTypeFont(bold_font_file_name, size=font_size)
     add_gradient(image, gradient_color, gradient_on_side=gradient_on_side)
     side_padding = image.width // 100
-    text_start_x = (
+    text_field_start_x = (
         image.width // 7 * 5
     ) if gradient_on_side else side_padding
-    place_for_text = (
+    field_for_text_length = (
         image.width - (
             side_padding if gradient_on_side else side_padding * 2
-        ) - text_start_x
+        ) - text_field_start_x
     )
-    if symbols_before_description_wrap is None:
-        wrapped_description = get_wrapped_text_by_max_width(
-            regular_font, description, place_for_text
-        )
-    else:
-        wrapped_description = textwrap.wrap(
+    wrapped_description = "\n".join(
+        get_wrapped_text_by_max_width(
+            regular_font, description, field_for_text_length
+        ) if symbols_before_description_wrap is None else textwrap.wrap(
             description, symbols_before_description_wrap
         )
-    wrapped_description = "\n".join(wrapped_description)
-    if symbols_before_title_wrap is None:
-        wrapped_title = get_wrapped_text_by_max_width(
-            bold_font, title, place_for_text
-        )
-    else:
-        wrapped_title = textwrap.wrap(
+    )
+    wrapped_title = "\n".join(
+        get_wrapped_text_by_max_width(
+            bold_font, title, field_for_text_length
+        ) if symbols_before_title_wrap is None else textwrap.wrap(
             title, symbols_before_title_wrap
         )
-    wrapped_title = "\n".join(wrapped_title)
+    )
     title_width, title_height = bold_font.getsize_multiline(wrapped_title)
     # gap_between_texts = height_of_one_line // 2  -- This is a pseudocode!
     gap_between_texts = bold_font.getsize(title)[1] // 2
@@ -83,13 +79,13 @@ def add_gradient_with_text(
         if title_start_y + text_height > image.height - side_padding:
             title_start_y = image.height - side_padding - text_height
     true_description_start_x = (
-        text_start_x + (place_for_text - description_width) // 2
+        text_field_start_x + (field_for_text_length - description_width) // 2
     )
     true_title_start_x = (
-        text_start_x + (place_for_text - title_width) // 2
+        text_field_start_x + (field_for_text_length - title_width) // 2
     )
     drawer = Draw(image)
-    drawer.text(  # Title
+    drawer.multiline_text(  # Title
         (true_title_start_x, title_start_y),
         wrapped_title, fill=text_color, font=bold_font, align="center"
     )
