@@ -14,6 +14,7 @@ class ImageInfo:
     title: str
     description: str
     gradient_on_side: bool = False
+    wider_gradient: bool = False
     text_size_multiplier: float = 1
 
 

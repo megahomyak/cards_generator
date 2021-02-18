@@ -23,7 +23,8 @@ def add_gradient_with_text(
         symbols_before_title_wrap: Optional[int] = None,
         gradient_on_side: bool = True,
         text_size_multiplier: float = 1,
-        font_size: int = None) -> None:
+        font_size: int = None,
+        wider_gradient: bool = False) -> None:
     """
     WARNING: mutates the given image!
 
@@ -44,7 +45,7 @@ def add_gradient_with_text(
     add_gradient(image, gradient_color, gradient_on_side=gradient_on_side)
     side_padding = image.width // 100
     text_field_start_x = (
-        image.width // 7 * 5
+        (image.width // 3 * 2) if wider_gradient else (image.width // 7 * 5)
     ) if gradient_on_side else side_padding
     field_for_text_length = (
         image.width - (
@@ -75,7 +76,9 @@ def add_gradient_with_text(
     if gradient_on_side:
         title_start_y = (image.height - text_height) // 2
     else:
-        title_start_y = round(image.height / 8 * 7) - text_height // 2
+        title_start_y = round(
+            image.height / 8 * (6 if wider_gradient else 7)
+        ) - text_height // 2
         if title_start_y + text_height > image.height - side_padding:
             title_start_y = image.height - side_padding - text_height
     true_description_start_x = (
@@ -116,8 +119,9 @@ def __main():
         "\n"
         "If you add # before the filename, it will be ignored. If you add > "
         "before the filename, side gradient will be applied. If you add * "
-        "before the filename, text's size will be multiplied by 2. >* applies "
-        "them both.\n"
+        "before the filename, text's size will be multiplied by 2. If you add "
+        "+ before the filename, gradient will be a bit wider, so text will fit "
+        "if it's not. You can apply any of them (like *>+ or *>)\n"
         "If you want to write the same title and description for several "
         "files, you can write their names in one line separated with | (like "
         "abc.jpg | def.png | ghi.jpeg)"
@@ -170,16 +174,21 @@ def __main():
                     f"{TEXTS_FILE_NAME} is missing!"
                 )
             if filename[0] != "#":
-                if filename[0] == ">":
-                    filename = filename[1:]
-                    gradient_on_side = True
+                gradient_on_side = False
+                text_size_multiplier = 1
+                wider_gradient = False
+                for index in range(3):  # Because there are 3 specifiers
+                    if filename[index] == ">":
+                        gradient_on_side = True
+                    elif filename[index] == "*":
+                        text_size_multiplier = 1.4
+                    elif filename[index] == "+":
+                        wider_gradient = True
+                    else:
+                        filename = filename[index:]
+                        break
                 else:
-                    gradient_on_side = False
-                if filename[0] == "*":  # To handle >*
-                    filename = filename[1:]
-                    text_size_multiplier = 1.4
-                else:
-                    text_size_multiplier = 1
+                    filename = filename[3:]  # It has all 3 modifiers
                 if filename not in input_photos:
                     raise FileNotFoundError(
                         f"File you stated in the {TEXTS_FILE_NAME} (exactly "
@@ -189,6 +198,7 @@ def __main():
                     source_filename=filename, title=file_lines[i * 3 + 1],
                     description=file_lines[i * 3 + 2],
                     gradient_on_side=gradient_on_side,
+                    wider_gradient=wider_gradient,
                     text_size_multiplier=text_size_multiplier
                 ))
     images = []
@@ -206,7 +216,8 @@ def __main():
             regular_font_file_name=REGULAR_FONT_FILE_NAME,
             bold_font_file_name=BOLD_FONT_FILE_NAME,
             gradient_on_side=image_info.gradient_on_side,
-            text_size_multiplier=image_info.text_size_multiplier
+            text_size_multiplier=image_info.text_size_multiplier,
+            wider_gradient=image_info.wider_gradient
         )
         image = image.convert(old_image_mode)
         image.save(f"{OUTPUT_FOLDER_NAME}/{image_info.source_filename}")
